@@ -30,22 +30,29 @@
     ctx.fillStyle = '#CCCCCC';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    canvas.addEventListener('mousedown', () => isDrawing = true);
-    canvas.addEventListener('mouseup', () => isDrawing = false);
-    canvas.addEventListener('mousemove', draw);
-
-    function draw(e) {
-      if (!isDrawing) return;
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+    function scratch(x, y) {
       ctx.globalCompositeOperation = 'destination-out';
       ctx.beginPath();
       ctx.arc(x, y, 15, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    canvas.addEventListener('mouseup', () => {
+    function getXY(e) {
+      const rect = canvas.getBoundingClientRect();
+      if (e.touches) {
+        return {
+          x: e.touches[0].clientX - rect.left,
+          y: e.touches[0].clientY - rect.top
+        };
+      } else {
+        return {
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top
+        };
+      }
+    }
+
+    function checkReveal() {
       const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
       let clearPixels = 0;
       for (let i = 3; i < pixels.length; i += 4) {
@@ -54,7 +61,32 @@
       if (clearPixels / (canvas.width * canvas.height) > 0.4) {
         document.getElementById('reward').style.display = 'block';
       }
+    }
+
+    // Mouse Events
+    canvas.addEventListener('mousedown', () => isDrawing = true);
+    canvas.addEventListener('mouseup', () => {
+      isDrawing = false;
+      checkReveal();
     });
+    canvas.addEventListener('mousemove', e => {
+      if (!isDrawing) return;
+      const { x, y } = getXY(e);
+      scratch(x, y);
+    });
+
+    // Touch Events
+    canvas.addEventListener('touchstart', () => isDrawing = true);
+    canvas.addEventListener('touchend', () => {
+      isDrawing = false;
+      checkReveal();
+    });
+    canvas.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if (!isDrawing) return;
+      const { x, y } = getXY(e);
+      scratch(x, y);
+    }, { passive: false });
   </script>
 </body>
 </html>
